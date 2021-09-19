@@ -18,12 +18,7 @@ class PostgresDb(DB):
     db: SQLAlchemy
 
     def __init__(self, flaskApp: Flask):
-        with open(Path(__file__).parent / "secrets.json", "r") as f:
-            configData = json.load(f)
-
-        url = f"postgresql://{configData['user']}:{configData['password']}@{configData['host']}:" + \
-              f"{configData['port']}/{configData['database']}"
-        print(url)
+        url = os.environ["DATABASE_URL"]
         flaskApp.config["SQLALCHEMY_DATABASE_URI"] = url
         flaskApp.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         self.db = SQLAlchemy(flaskApp)
