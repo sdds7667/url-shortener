@@ -1,10 +1,11 @@
 import json
 import os
 from datetime import datetime
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Optional
 
-from flask import Flask, jsonify, request, redirect
+from flask import Flask, jsonify, request, redirect, abort
 from flask_httpauth import HTTPTokenAuth
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -55,13 +56,63 @@ def verify_token(token: str) -> str:
     return allowed_tokens[token] if token in allowed_tokens else None
 
 
-@app.route("/shorten")
+def shorten_url_collision_check(long_url: str) -> str:
+    shorter_url = UUID4BasedURLShortener.get_shorter_url_for(long_url)
+    while not db.create_url_entry(long_url, shorter_url):
+        shorter_url = UUID4BasedURLShortener.get_shorter_url_for(long_url)
+    return shorter_url
+
+
+@app.route("/shorten", methods=["POST"])
 @auth.login_required
 def shorten_url():
     url_to_shorten = request.args.get("u")
-    shorter_url = UUID4BasedURLShortener.get_shorter_url_for(url_to_shorten)
-    db.create_url_entry(url_to_shorten, shorter_url)
-    return jsonify(shorter_url)
+    if url_to_shorten.startswith("["):
+        response_list = []
+        try:
+            data = json.loads(url_to_shorten)
+
+            # Make sure of the proper data format, to prevent any security issues
+            if type(data) is list:
+                # Proper data format
+
+                for entry in data:
+                    # Type of each entry should be dict
+                    if type(entry) is dict:
+                        entry: dict
+
+                        allowed_keys = ["sms_record_id", "original_url"]
+                        currentEntryId = None
+                        currentEntryUrl = None
+
+                        # Parse the current entry
+                        for key, value in entry.items():
+                            if key not in allowed_keys:
+                                # Key not understood
+                                abort(400)
+                            else:
+                                # assign parameters to their proper value
+                                if key == 'original_url':
+                                    currentEntryUrl = value
+                                elif key == "sms_record_id":
+                                    currentEntryId = value
+
+                                # If all the parameters have been parsed, shorten and add to the list
+                                if currentEntryId is not None and currentEntryUrl is not None:
+                                    shorter_url = shorten_url_collision_check(currentEntryUrl)
+                                    response_list.append({"sms_record_id": currentEntryId,
+                                                          "original_url": currentEntryUrl,
+                                                          "shortened_url": shorter_url})
+                    else:
+                        abort(400)
+            else:
+                abort(400)
+            return jsonify(response_list)
+        except JSONDecodeError:
+            abort(400)
+    else:
+        shorter_url = shorten_url_collision_check(url_to_shorten)
+        return jsonify(shorter_url)
 
 
 @app.route("/<url>")
