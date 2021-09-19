@@ -19,6 +19,8 @@ class PostgresDb(DB):
 
     def __init__(self, flaskApp: Flask):
         url = os.environ["DATABASE_URL"]
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
         flaskApp.config["SQLALCHEMY_DATABASE_URI"] = url
         flaskApp.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         self.db = SQLAlchemy(flaskApp)
