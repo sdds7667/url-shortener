@@ -38,7 +38,13 @@ class PostgresDb(DB):
         return True
 
     def get_url_entry(self, short_url: str) -> Optional[str]:
-        return UrlEntryModel.query.filter_by(id=short_url).first().longUrl
+        urlEntryModel: UrlEntryModel = UrlEntryModel.query.filter_by(id=short_url).first()
+        if urlEntryModel is None:
+            abort(404)
+        urlEntryModel.lastUsed = datetime.now()
+        urlEntryModel.used = UrlEntryModel.used + 1
+        self.db.session.commit()
+        return urlEntryModel.longUrl
 
     def migrate(self):
         migrate = Migrate(self.app, self.db)
@@ -117,10 +123,10 @@ def shorten_url():
 
 @app.route("/<url>")
 def get_url(url: str):
-    print("request is going ok")
-    print(url)
     if type(url) is not str or len(url) > 10:
         return ""
+    if url == 'shorten':
+        abort(405)
     return redirect(db.get_url_entry(url))
 
 
