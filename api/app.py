@@ -1,8 +1,6 @@
-import json
 import os
 from datetime import datetime
 from json import JSONDecodeError
-from pathlib import Path
 from typing import Optional
 
 from flask import Flask, jsonify, request, redirect, abort
@@ -44,7 +42,7 @@ class PostgresDb(DB):
         return urlEntryModel.longUrl
 
     def migrate(self):
-        migrate = Migrate(self.app, self.db)
+        Migrate(self.app, self.db)
 
 
 app = Flask(__name__)
@@ -69,53 +67,62 @@ def shorten_url_collision_check(long_url: str) -> str:
 @app.route("/shorten", methods=["POST"])
 @auth.login_required
 def shorten_url():
-    url_to_shorten = request.args.get("u")
-    if url_to_shorten.startswith("["):
-        response_list = []
-        try:
-            data = json.loads(url_to_shorten)
+    response_list = []
+    try:
+        data = request.data
 
-            # Make sure of the proper data format, to prevent any security issues
-            if type(data) is list:
-                # Proper data format
+        # Make sure of the proper data format, to prevent any security issues
+        if type(data) is list:
+            # Proper data format
 
-                for entry in data:
-                    # Type of each entry should be dict
-                    if type(entry) is dict:
-                        entry: dict
+            for entry in data:
+                # Type of each entry should be dict
+                if type(entry) is dict:
+                    entry: dict
 
-                        allowed_keys = ["sms_record_id", "original_url"]
-                        currentEntryId = None
-                        currentEntryUrl = None
+                    allowed_keys = ["sms_record_id", "original_url"]
+                    currentEntryId = None
+                    currentEntryUrl = None
 
-                        # Parse the current entry
-                        for key, value in entry.items():
-                            if key not in allowed_keys:
-                                # Key not understood
-                                abort(400)
-                            else:
-                                # assign parameters to their proper value
-                                if key == 'original_url':
-                                    currentEntryUrl = value
-                                elif key == "sms_record_id":
-                                    currentEntryId = value
+                    # Parse the current entry
+                    for key, value in entry.items():
+                        if key not in allowed_keys:
+                            # Key not understood
+                            app.logger.error(f"Failure: Key \"{key}\" not understood")
+                            abort(400)
+                        else:
+                            # assign parameters to their proper value
+                            if key == 'original_url':
+                                currentEntryUrl = value
+                            elif key == "sms_record_id":
+                                currentEntryId = value
 
-                                # If all the parameters have been parsed, shorten and add to the list
-                                if currentEntryId is not None and currentEntryUrl is not None:
-                                    shorter_url = shorten_url_collision_check(currentEntryUrl)
-                                    response_list.append({"sms_record_id": currentEntryId,
-                                                          "original_url": currentEntryUrl,
-                                                          "shortened_url": shorter_url})
-                    else:
-                        abort(400)
-            else:
-                abort(400)
-            return jsonify(response_list)
-        except JSONDecodeError:
+                            # If all the parameters have been parsed, shorten and add to the list
+                            if currentEntryId is not None and currentEntryUrl is not None:
+                                shorter_url = shorten_url_collision_check(currentEntryUrl)
+                                response_list.append({"sms_record_id": currentEntryId,
+                                                      "original_url": currentEntryUrl,
+                                                      "shortened_url": shorter_url})
+                else:
+                    # The entry is not a dictionary
+                    try:
+                        string_repr = str(entry)
+                        if len(string_repr) > 100:
+                            app.logger.error("Failure: The current entry is not a dictionary, "
+                                             "but the string representation is very long.")
+                        else:
+                            app.logger.error(f"Failure: The current entry \"{string_repr}\" is not a dictionary.")
+                    except Exception:
+                        app.logger.error(
+                            f"Failure: The current entry is not a dictionary, and cannot be converted to string.")
+                    abort(400)
+        else:
+            app.logger.error("Failure: The body of the request was not a list")
             abort(400)
-    else:
-        shorter_url = shorten_url_collision_check(url_to_shorten)
-        return jsonify(shorter_url)
+        return jsonify(response_list)
+    except JSONDecodeError:
+        app.logger.error("Failed: The request could not be decoded as JSON.")
+        abort(400)
 
 
 @app.route("/<url>")
