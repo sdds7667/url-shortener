@@ -19,9 +19,13 @@ heroku addons:create heroku-postgresql:hobby-dev
 ```
 
 - add the environment variables:
-```bash
-heroku config:set UrlShortenerAllowedKey={a-very-secure-key}
+Optional, could generate a random string with python:
+```bash 
+echo "import uuid; print(uuid.uuid4().hex)" | python3
 ```
+Command to set the key on the server's env
+```bash
+heroku config:set UrlShortenerAllowedKey={a-very-secure-key}```
 
 - generate the datbase: 
 ```bash
