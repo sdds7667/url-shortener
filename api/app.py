@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request, redirect, abort
 from flask_httpauth import HTTPTokenAuth
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 from api.short_func import UUID4BasedURLShortener
 from db.DBInterface import DB
@@ -46,6 +47,8 @@ class PostgresDb(DB):
 
 
 app = Flask(__name__)
+CORS(app)
+
 auth = HTTPTokenAuth(scheme="Bearer")
 db = PostgresDb(app)
 db.migrate()
@@ -69,7 +72,7 @@ def shorten_url_collision_check(long_url: str) -> str:
 def shorten_url():
     response_list = []
     try:
-        data = request.data
+        data = request.json
 
         # Make sure of the proper data format, to prevent any security issues
         if type(data) is list:
@@ -99,6 +102,7 @@ def shorten_url():
 
                             # If all the parameters have been parsed, shorten and add to the list
                             if currentEntryId is not None and currentEntryUrl is not None:
+                                app.logger.info(f"Request to shorten: {currentEntryUrl}")
                                 shorter_url = shorten_url_collision_check(currentEntryUrl)
                                 response_list.append({"sms_record_id": currentEntryId,
                                                       "original_url": currentEntryUrl,
