@@ -189,6 +189,22 @@
                     }
                 }
             }
+        },
+        "/reserve-slug": {
+            "description": "creates a link between a company slug and a user's unique identifier",
+            "post": {
+                "responses": {
+                    "204": {
+                        "description": "the link was created successfully",
+                    },
+                    "409": {
+                        "description": "the slug is already registered"
+                    },
+                    "422": {
+                        "description": "the slug is already registered"
+                    }
+                }
+            }
         }
     }
 }
