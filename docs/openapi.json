@@ -1,0 +1,194 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "URL Shortener",
+        "version": "0.0.1a"
+    },
+    "components": {
+        "requestBodies": {
+            "shorten-url-body": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/shortened-url-request-array"
+                        }
+                    }
+                },
+                "description": "the body of the basic shortening url",
+                "required": true
+            },
+            "shorten-custom-url-body": {
+                "required": true,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "custom-url": {
+                                    "type": "string",
+                                    "description": "the custom url that will be shortened to."
+                                },
+                                "custom-url-token": {
+                                    "type": "string",
+                                    "description": "the randomized token that authenticates the custom-url"
+                                },
+                                "urls-to-shorten": {
+                                    "$ref": "#/components/schemas/shortened-url-request-array"
+                                }
+                            },
+                            "required": [
+                                "custom-url",
+                                "custom-url-token",
+                                "url-to-shorten"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "shortened-url-request-array": {
+                "type": "array",
+                "description": "a list of objects that contain the url to be shortened",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "sms_record_id": {
+                            "type": "string",
+                            "description": "the record id that will be linked to the url"
+                        },
+                        "original_url": {
+                            "type": "string",
+                            "format": "url",
+                            "description": "the url to be shortened to shorten"
+                        }
+                    },
+                    "required": [
+                        "sms_record_id",
+                        "original_url"
+                    ]
+                }
+            },
+            "shortened-url": {
+                "description": "a shortened url, the message record id",
+                "type": "object",
+                "properties": {
+                    "sms_record_id": {
+                        "type": "string",
+                        "description": "the record id linked to this url"
+                    },
+                    "original_url": {
+                        "type": "string",
+                        "description": "the url that was shortened"
+                    },
+                    "shortened_url": {
+                        "type": "string",
+                        "description": "the shorter version of the url"
+                    }
+                },
+                "example": {
+                    "sms_record_id": "123471324891237",
+                    "original_url": "https://google.com",
+                    "shortened_url": "shorter"
+                }
+            },
+            "shortened-url-array": {
+                "description": "a list of shortened urls",
+                "type": "array",
+                "items": {
+                    "$ref": "#/components/schemas/shortened-url"
+                }
+            },
+            "bad-request-error": {
+                "description": "the message returned when an encountered an error when processing the app",
+                "type": "string"
+            }
+        },
+        "securitySchemes": {
+            "tokenAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        },
+        "responses": {
+            "bad-request": {
+                "description": "the request did not follow the parameters",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/bad-request-error"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "paths": {
+        "/shorten": {
+            "description": "the basic method for shortening an url",
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "the url was shortened successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/shortened-url-array"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/bad-request"
+                    },
+                    "403": {
+                        "description": "missing the security code"
+                    }
+                },
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/shorten-url-body"
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/shorten/custom": {
+            "description": "adds a custom prefix to the shortened url: /ShortINC/<random-url>",
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "the url was shortened successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/shortened-url-array"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/bad-request"
+                    },
+                    "403": {
+                        "description": "either the authorization token is bad, or the token to the custom domain is bad",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "the reason for the 403",
+                                    "enum": [
+                                        "custom url token bad",
+                                        "api token bad"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
