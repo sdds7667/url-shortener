@@ -10,4 +10,4 @@ class LoggedError:
         self.msg = msg
 
     def __call__(self, *args, **kwargs):
-        self.app.logger.error(self.msg.format(args))
+        self.app.logger.error(self.msg.format(*args))

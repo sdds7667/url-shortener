@@ -34,11 +34,15 @@ def handle_slug_reservation(slug_repo: SlugReservationRepo, company_id: str, slu
     if existing_reservation is None:
         # create the reservation
         slug_repo.add(company_id, slug)
+        return True, 204
 
     elif existing_reservation.by == company_id:
         if not existing_reservation.permanent:
             # the company owns the reservation, refresh it
             slug_repo.refresh(existing_reservation)
+        return True, 204
+    elif not existing_reservation.permanent and existing_reservation.expires < datetime.now():
+        slug_repo.change_reservation(existing_reservation, company_id)
         return True, 204
 
     # The reservation exists, but is not owned by the company requesting it
@@ -71,15 +75,20 @@ def handle_shorten_url_with_custom_slug(slug_reservation_repo: SlugReservationRe
         return None, 400
 
     reservation = slug_reservation_repo.by_id(slug)
-    if company_token != reservation.by and (reservation.permanent or reservation.expires > datetime.now()):
-        # the token is not reserved, and has not expired or is permanent => no access
-        return None, 403
+    if reservation is not None:
+        if company_token != reservation.by and (reservation.permanent or reservation.expires > datetime.now()):
+            # the token is not reserved, and has not expired or is permanent => no access
+            return None, 403
+        if company_token != reservation.by and reservation.expires < datetime.now():
+            slug_reservation_repo.change_reservation(company_token)
+
+    slug_reservation_repo.reserve_permanently(reservation)
 
     return_list: List[ShorteningResult] = []
 
     # the slug is available
     for long_url, sms_record_id in urls_to_shorten:
-        shorter_url = shorten_url_collision_check(url_entry_repo, sms_record_id, slug, long_url)
+        shorter_url = slug + "/" + shorten_url_collision_check(url_entry_repo, sms_record_id, slug, long_url)
         return_list.append(ShorteningResult(sms_record_id, long_url, shorter_url))
 
     return [asdict(x) for x in return_list], 200

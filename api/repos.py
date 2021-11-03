@@ -48,7 +48,7 @@ class UrlEntryRepo(Repo):
         :return: None if the entry was not found, the long url otherwise
         """
         # Ensure that the company slug is never empty
-        company_slug = "" if company_slug is None else ""
+        company_slug = "" if company_slug is None else company_slug
 
         # Search for the longer url
         urlEntryModel: UrlEntryModel = UrlEntryModel.query.filter_by(companySlug=company_slug, id=short_url).first()
@@ -69,7 +69,7 @@ class SlugReservationRepo(Repo):
 
     @staticmethod
     def by_id(_id: str) -> Optional[SlugReservation]:
-        return SlugReservation.query.filter_by(id=_id).first()
+        return SlugReservation.query.filter_by(slug=_id).first()
 
     def add(self, company_id: str, slug: str) -> SlugReservation:
         """
@@ -88,5 +88,15 @@ class SlugReservationRepo(Repo):
         Refreshes a reservation and commits it to the database
         :param slug_reservation: the linked slug reservation instance
         """
+        slug_reservation.refresh(self.app)
+        self.db.session.commit()
+
+    def reserve_permanently(self, slug_reservation: SlugReservation):
+        slug_reservation.permanent = True
+        slug_reservation.expires = None
+        self.db.session.commit()
+
+    def change_reservation(self, slug_reservation: SlugReservation, by: str):
+        slug_reservation.by = by
         slug_reservation.refresh(self.app)
         self.db.session.commit()

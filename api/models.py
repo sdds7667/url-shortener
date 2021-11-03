@@ -41,11 +41,11 @@ class SlugReservation(db.Model):
     expires: if the reservation is permanent, it will never expire (null), else the deadline
         after which the company loses the reservation
     """
-    slug: db.Column(db.String, primary_key=True)
-    by: db.Column(db.String, nullable=False)
-    permanent: db.Column(db.Boolean)
-    created: db.Column(db.TIMESTAMP)
-    expires: db.Column(db.TIMESTAMP, nullable=True)
+    slug = db.Column(db.String, primary_key=True)
+    by = db.Column(db.String, nullable=False)
+    permanent = db.Column(db.Boolean)
+    created = db.Column(db.TIMESTAMP)
+    expires = db.Column(db.TIMESTAMP, nullable=True)
 
     def __init__(self, slug: str, by: str, permanent: bool,
                  created: Optional[datetime] = None,
@@ -56,7 +56,7 @@ class SlugReservation(db.Model):
         self.permanent = permanent
         self.created = created if created is not None else datetime.now()
         reservation_duration = app.config["ReservationDuration"] if app is not None else 900
-        self.expires = (created + timedelta(seconds=reservation_duration)) if expires is None else expires
+        self.expires = (self.created + timedelta(seconds=reservation_duration)) if expires is None else expires
 
     def __repr__(self):
         return f"<SlugReservation \"{self.slug}\" by \"{self.by}\">"

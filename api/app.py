@@ -15,6 +15,9 @@ from api.repos import config_app_with_db, UrlEntryRepo, SlugReservationRepo
 app = Flask(__name__)
 CORS(app)
 
+# load os config:
+app.config["ReservationDuration"] = int(os.environ["ReservationDurationInSeconds"])
+
 # database configuration
 config_app_with_db(app, db)
 url_entry_repo = UrlEntryRepo(app, db)
@@ -25,14 +28,19 @@ Migrate(app, db)
 auth = HTTPTokenAuth(scheme="Bearer")
 allowed_tokens = {os.environ["UrlShortenerAllowedKey"]: "no-security"}
 
-RESPONSE_SUCCESS_EMPTY = "", 204
-RESPONSE_BAD_JSON = jsonify("Bad json supplied or ContentType header is not application/json "), 400
-RESPONSE_BAD_ROOT = jsonify("Bad root type supplied"), 400
-RESPONSE_MISSING_ARGS = jsonify("Missing arguments"), 400
-RESPONSE_BAD_ARGUMENT_TYPES_GENERIC = jsonify("Bad argument types"), 400
-RESPONSE_FAIL_EMPTY_VALUES_GENERIC = jsonify("Empty/Null values for non-nullable params"), 400
-RESPONSE_FAIL_UNAUTHORIZED_GENERIC = jsonify("No access to the resource"), 403
-RESPONSE_FAIL_UNKNOWN = jsonify("Failed for unknown reasons"), 500
+# declare all the reusable responses
+with app.app_context():
+    # app context is needed for jsonify
+    RESPONSE_SUCCESS_EMPTY = "", 204
+    RESPONSE_BAD_JSON = jsonify("Bad json supplied or ContentType header is not application/json "), 400
+    RESPONSE_BAD_ROOT = jsonify("Bad root type supplied"), 400
+    RESPONSE_MISSING_ARGS = jsonify("Missing arguments"), 400
+    RESPONSE_BAD_ARGUMENT_TYPES_GENERIC = jsonify("Bad argument types"), 400
+    RESPONSE_FAIL_BAD_URL = jsonify("URL too long or not a string"), 400
+    RESPONSE_FAIL_EMPTY_VALUES_GENERIC = jsonify("Empty/Null values for non-nullable params"), 400
+    RESPONSE_FAIL_UNAUTHORIZED_GENERIC = jsonify("No access to the resource"), 403
+    RESPONSE_FAIL_METHOD_NOT_ALLOWED = jsonify("Method not allowed"), 405
+    RESPONSE_FAIL_UNKNOWN = jsonify("Failed for unknown reasons"), 500
 
 # LOGGER MESSAGES:
 ftp = "Failed to process, "
@@ -156,9 +164,9 @@ def shorten_url_to_custom():
             return RESPONSE_BAD_ARGUMENT_TYPES_GENERIC
 
         checked_urls_to_shorten = []
-        for ind, i in urls_to_shorten:
+        for ind, i in enumerate(urls_to_shorten):
             if type(i) is not dict:
-                LOG_BAD_ARGUMENT_TYPES(f"urls_to_shorten[{ind}", "dict", type(i))
+                LOG_BAD_ARGUMENT_TYPES(f"urls_to_shorten[{ind}]", "dict", type(i))
                 return RESPONSE_BAD_ARGUMENT_TYPES_GENERIC
             if "sms_record_id" not in i:
                 LOG_MISSING_ARGS(f"urls_to_shorten[{ind}].sms_record_id")
@@ -255,7 +263,7 @@ def reserve_slug():
         return jsonify("Failed to parse the json request"), 400
 
 
-@app.route("/<company_slug>/<url>")
+@app.route("/<company_slug>/<url>", methods=["GET"])
 def get_custom_company_url(company_slug: str, url: str):
     """
     Handles the redirect functionality when the user follows a company custom slug
@@ -264,10 +272,12 @@ def get_custom_company_url(company_slug: str, url: str):
     :return: a json response with code
     """
     # Type checks to prevent malicious urls
+    if type(company_slug) is not str or len(url) > 50:
+        return "company slug not found in the database", 404
+    if company_slug == 'api':
+        return RESPONSE_FAIL_METHOD_NOT_ALLOWED
     if type(url) is not str or len(url) > 10:
         return "url not found in the database", 404
-    if type(company_slug) is not str or len(url) > 50:
-        return "company slug not found in the database"
 
     # return the redirect if exists or a 404 if it doesn't
     long_url = url_entry_repo.by_company_slug_and_shorten_url(company_slug, url)
@@ -288,12 +298,14 @@ def get_url(url: str):
     """
     # Type checks to prevent malicious urls
     if type(url) is not str or len(url) > 10:
-        return ""
+        LOG_BAD_ARGUMENT_TYPES("url", "str, len<10", f"{type(url)}, {len(url)}")
+        return RESPONSE_FAIL_BAD_URL
 
     if url == 'shorten':
         # the shorten url is not available with a get method
         abort(405)
 
+    app.logger.info(f"Handling request {url}")
     # try to retrieve the long url
     long_url = url_entry_repo.by_company_slug_and_shorten_url(None, url)
 
@@ -305,4 +317,4 @@ def get_url(url: str):
 
 
 if __name__ == '__main__':
-    app.run("0.0.0.0", 5000)
+    app.run("0.0.0.0", 8000)
