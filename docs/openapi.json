@@ -24,22 +24,22 @@
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "custom-url": {
+                                "custom_url": {
                                     "type": "string",
                                     "description": "the custom url that will be shortened to."
                                 },
-                                "custom-url-token": {
+                                "custom_url_token": {
                                     "type": "string",
                                     "description": "the randomized token that authenticates the custom-url"
                                 },
-                                "urls-to-shorten": {
+                                "urls_to_shorten": {
                                     "$ref": "#/components/schemas/shortened-url-request-array"
                                 }
                             },
                             "required": [
-                                "custom-url",
-                                "custom-url-token",
-                                "url-to-shorten"
+                                "custom_url",
+                                "custom_url_token",
+                                "urls_to_shorten"
                             ]
                         }
                     }
@@ -124,7 +124,7 @@
         }
     },
     "paths": {
-        "/shorten": {
+        "/api/shorten": {
             "description": "the basic method for shortening an url",
             "post": {
                 "responses": {
@@ -155,9 +155,12 @@
                 ]
             }
         },
-        "/shorten/custom": {
+        "/api/shorten/custom": {
             "description": "adds a custom prefix to the shortened url: /ShortINC/<random-url>",
             "post": {
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/shorten-custom-url-body"
+                },
                 "responses": {
                     "200": {
                         "description": "the url was shortened successfully",
@@ -190,12 +193,31 @@
                 }
             }
         },
-        "/reserve-slug": {
+        "/api/reserve-slug": {
             "description": "creates a link between a company slug and a user's unique identifier",
             "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "companyId": {
+                                        "type": "string",
+                                        "description": "the crm_org_id, or other uniquely issued identifier"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "description": "the slug that the company will reserve"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "204": {
-                        "description": "the link was created successfully",
+                        "description": "the link was created successfully"
                     },
                     "409": {
                         "description": "the slug is already registered"

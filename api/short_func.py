@@ -1,6 +1,7 @@
 import datetime
 import uuid
 from abc import abstractmethod
+
 import numpy as np
 
 
@@ -43,8 +44,3 @@ class UUID4BasedURLShortener(URLShortener):
     @staticmethod
     def get_max_url_length() -> int:
         return 6
-
-
-if __name__ == '__main__':
-    url = "https://www.amazon.com/deal/ec376f60/ref=gbps_img_m-9_475e_ec376f60?&moreDeals=598f3447,cdd0799c,1460cec4,d4a769d2,62a5e110&searchAlias=fashion&smid=ATVPDKIKX0DER&pf_rd_p=5d86def2-ec10-4364-9008-8fbccf30475e&pf_rd_s=merchandised-search-9&pf_rd_t=101&pf_rd_i=15529609011&pf_rd_m=ATVPDKIKX0DER&pf_rd_r=WQRP794HFWZXMMMYWXTC"
-    print(UUID4BasedURLShortener.get_shorter_url_for(url))
