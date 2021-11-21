@@ -7,7 +7,8 @@ from flask_httpauth import HTTPTokenAuth
 from flask_migrate import Migrate
 
 from api.errors import LoggedError
-from api.handlers import handle_slug_reservation, handle_shorten_url_with_custom_slug, shorten_url_collision_check
+from api.handlers import handle_slug_reservation, handle_shorten_url_with_custom_slug, shorten_url_collision_check, \
+    handle_get_slugs_for_company
 from api.models import db
 from api.repos import config_app_with_db, UrlEntryRepo, SlugReservationRepo
 
@@ -261,6 +262,28 @@ def reserve_slug():
         # Not a JSON request
         LOG_BAD_JSON()
         return jsonify("Failed to parse the json request"), 400
+
+
+@app.route(f"/{API_PREFIX}/slugs", methods=["GET"])
+@auth.login_required
+def handle_get_company_slugs_route():
+    """
+
+    Described in /docs/openapi.json:233
+    Route description: Returns the slugs that the company uses
+    Parameters:
+        companyId: the crm_org_id as the unique id for each company
+    :return: a (json) list of the slugs as strings, or an error
+    """
+
+    # Route prerequisites: companyId present
+    if "companyId" not in request.args:
+        LOG_MISSING_ARGS("companyId")
+        return RESPONSE_MISSING_ARGS
+
+    company_id = request.args['companyId']
+
+    return jsonify(handle_get_slugs_for_company(slug_repo, company_id))
 
 
 @app.route("/<company_slug>/<url>", methods=["GET"])

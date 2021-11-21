@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -70,6 +70,11 @@ class SlugReservationRepo(Repo):
     @staticmethod
     def by_id(_id: str) -> Optional[SlugReservation]:
         return SlugReservation.query.filter_by(slug=_id).first()
+
+    @staticmethod
+    def by_company(companyId: str) -> List[str]:
+        slug_reservations: List[SlugReservation] = SlugReservation.query.filter_by(by=companyId).all()
+        return list({x.slug for x in slug_reservations})
 
     def add(self, company_id: str, slug: str) -> SlugReservation:
         """

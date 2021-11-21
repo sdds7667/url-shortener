@@ -227,6 +227,43 @@
                     }
                 }
             }
+        },
+        "/api/slugs": {
+            "description": "returns the slugs that the company previously used",
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "companyId",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "the company id for which to return used slugs"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the list of slugs that the company uses",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "description": "the slugs the company uses"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref" : "#/components/responses/bad-request"
+                    },
+                    "403": {
+                        "description": "missing/bad security code"
+                    }
+                }
+            }
         }
     }
 }

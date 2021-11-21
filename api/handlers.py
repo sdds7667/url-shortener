@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 
 from api.repos import SlugReservationRepo
 
@@ -92,3 +92,12 @@ def handle_shorten_url_with_custom_slug(slug_reservation_repo: SlugReservationRe
         return_list.append(ShorteningResult(sms_record_id, long_url, shorter_url))
 
     return [asdict(x) for x in return_list], 200
+
+
+def handle_get_slugs_for_company(slug_repo: SlugReservationRepo, companyId: str) -> Union[List[str], int]:
+    """
+    :param slug_repo: the repository interface for the slug reservations
+    :param companyId: the company id that has been used
+    :return: the list of slugs the company used
+    """
+    return slug_repo.by_company(companyId)
