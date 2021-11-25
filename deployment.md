@@ -22,6 +22,7 @@ heroku addons:create heroku-postgresql:hobby-dev
 Optional, could generate a random string with python:
 ```bash
 heroku config:set UrlShortenerAllowedKey="$(echo "import uuid; print(uuid.uuid4().hex)" | python3)"
+heroku config:set ReservationDurationInSeconds=900
 ```
 
 Command to set the key on the server's env

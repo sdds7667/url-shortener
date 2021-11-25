@@ -72,8 +72,9 @@ class SlugReservationRepo(Repo):
         return SlugReservation.query.filter_by(slug=_id).first()
 
     @staticmethod
-    def by_company(companyId: str) -> List[str]:
-        slug_reservations: List[SlugReservation] = SlugReservation.query.filter_by(by=companyId).all()
+    def by_company_not_expired(companyId: str) -> List[str]:
+        slug_reservations: List[SlugReservation] = SlugReservation.query.filter_by(by=companyId).filter(
+            SlugReservation.permanent | (SlugReservation.expires >= datetime.now())).all()
         return list({x.slug for x in slug_reservations})
 
     def add(self, company_id: str, slug: str) -> SlugReservation:

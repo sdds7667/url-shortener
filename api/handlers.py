@@ -15,6 +15,9 @@ class ShorteningResult:
     shortened_url: str
 
 
+_RESERVED_SLUGS = ["none", "add"]
+
+
 def handle_slug_reservation(slug_repo: SlugReservationRepo, company_id: str, slug: str) -> Tuple[bool, int]:
     """
     handler for the slug reservation.
@@ -27,6 +30,9 @@ def handle_slug_reservation(slug_repo: SlugReservationRepo, company_id: str, slu
     # Check the func prerequisites
     if company_id is None or company_id == "" or slug is None or slug == "":
         return False, 400
+
+    if slug in _RESERVED_SLUGS:
+        return False, 409
 
     # Find the reservation
     existing_reservation = slug_repo.by_id(slug)
@@ -80,7 +86,7 @@ def handle_shorten_url_with_custom_slug(slug_reservation_repo: SlugReservationRe
             # the token is not reserved, and has not expired or is permanent => no access
             return None, 403
         if company_token != reservation.by and reservation.expires < datetime.now():
-            slug_reservation_repo.change_reservation(company_token)
+            slug_reservation_repo.change_reservation(reservation, company_token)
 
     slug_reservation_repo.reserve_permanently(reservation)
 
@@ -100,4 +106,4 @@ def handle_get_slugs_for_company(slug_repo: SlugReservationRepo, companyId: str)
     :param companyId: the company id that has been used
     :return: the list of slugs the company used
     """
-    return slug_repo.by_company(companyId)
+    return slug_repo.by_company_not_expired(companyId)
