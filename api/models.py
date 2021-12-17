@@ -14,6 +14,7 @@ class UrlEntryModel(db.Model):
     longUrl = db.Column(db.String)
     used = db.Column(db.BIGINT)
     lastUsed = db.Column(db.TIMESTAMP)
+    synced = db.Column(db.Boolean)
 
     def __init__(self, companySlug: str, oId: str, recordId: str, url: str, used: int, lastUsed: datetime):
         self.companySlug = companySlug if companySlug is not None else ""
@@ -46,6 +47,7 @@ class SlugReservation(db.Model):
     permanent = db.Column(db.Boolean)
     created = db.Column(db.TIMESTAMP)
     expires = db.Column(db.TIMESTAMP, nullable=True)
+    synced = db.Column(db.Boolean)
 
     def __init__(self, slug: str, by: str, permanent: bool,
                  created: Optional[datetime] = None,

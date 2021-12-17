@@ -302,6 +302,7 @@ def get_custom_company_url(company_slug: str, url: str):
     if type(url) is not str or len(url) > 10:
         return "url not found in the database", 404
 
+    app.logger.warning(request.headers.get("User-Agent"))
     # return the redirect if exists or a 404 if it doesn't
     long_url = url_entry_repo.by_company_slug_and_shorten_url(company_slug, url)
 
