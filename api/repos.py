@@ -40,11 +40,13 @@ class UrlEntryRepo(Repo):
 
         return True
 
-    def by_company_slug_and_shorten_url(self, company_slug: Optional[str], short_url: str) -> Optional[str]:
+    def by_company_slug_and_shorten_url(self, company_slug: Optional[str], short_url: str,
+                                        increase_preview_count: bool) -> Optional[str]:
         """
         Retrieves the longer url from the database
         :param company_slug: the company slug to search for
         :param short_url: the shorter url to search for
+        :param increase_preview_count: whether to increase the preview count for that entry.
         :return: None if the entry was not found, the long url otherwise
         """
         # Ensure that the company slug is never empty
@@ -57,10 +59,11 @@ class UrlEntryRepo(Repo):
         if urlEntryModel is None:
             return None
 
-        # Update the usage stats
-        urlEntryModel.lastUsed = datetime.now()
-        urlEntryModel.used = UrlEntryModel.used + 1
-        self.db.session.commit()
+        if increase_preview_count:
+            # Update the usage stats
+            urlEntryModel.lastUsed = datetime.now()
+            urlEntryModel.used = UrlEntryModel.used + 1
+            self.db.session.commit()
 
         return urlEntryModel.longUrl
 

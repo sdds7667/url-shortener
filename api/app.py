@@ -1,5 +1,7 @@
+import logging
 import os
 from json import JSONDecodeError
+from pathlib import Path
 
 from flask import Flask, jsonify, request, redirect, abort
 from flask_cors import CORS
@@ -9,6 +11,7 @@ from flask_migrate import Migrate
 from api.errors import LoggedError
 from api.handlers import handle_slug_reservation, handle_shorten_url_with_custom_slug, shorten_url_collision_check, \
     handle_get_slugs_for_company
+from api.ignored_headers import ConfigIgnoredHeaders
 from api.models import db
 from api.repos import config_app_with_db, UrlEntryRepo, SlugReservationRepo
 
@@ -24,6 +27,9 @@ config_app_with_db(app, db)
 url_entry_repo = UrlEntryRepo(app, db)
 slug_repo = SlugReservationRepo(app, db)
 Migrate(app, db)
+ConfigIgnoredHeaders(app)
+
+app.logger.setLevel(logging.INFO)
 
 # security configuration
 auth = HTTPTokenAuth(scheme="Bearer")
@@ -302,9 +308,12 @@ def get_custom_company_url(company_slug: str, url: str):
     if type(url) is not str or len(url) > 10:
         return "url not found in the database", 404
 
-    app.logger.warning(request.headers.get("User-Agent"))
+    # implement a filter for the headers that need to be ignored.
+    # O(1) using a set
+    ignored_header = request.headers.get("User-Agent") not in app.config["PREVIEW_IGNORED_HEADERS"]
+
     # return the redirect if exists or a 404 if it doesn't
-    long_url = url_entry_repo.by_company_slug_and_shorten_url(company_slug, url)
+    long_url = url_entry_repo.by_company_slug_and_shorten_url(company_slug, url, ignored_header)
 
     # url/company not found
     if long_url is None: return jsonify("url/company combination was not found"), 404
@@ -330,8 +339,14 @@ def get_url(url: str):
         abort(405)
 
     app.logger.info(f"Handling request {url}")
+
+    ignored_header = request.headers.get("User-Agent") not in app.config["PREVIEW_IGNORED_HEADERS"]
+
+    if ignored_header:
+        app.logger.debug("The header is ignored due to it being present in the ignored-headers.json")
+
     # try to retrieve the long url
-    long_url = url_entry_repo.by_company_slug_and_shorten_url(None, url)
+    long_url = url_entry_repo.by_company_slug_and_shorten_url(None, url, ignored_header)
 
     # check if the url exists
     if long_url is None: return jsonify("url not found"), 404

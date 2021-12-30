@@ -41,5 +41,17 @@ heroku ps:scale web=1
 ```
 
 
+## Ignoring preview headers
 
+If an application creates a preview by accessing the url, the reported accessed statistics will be inaccurate. 
+Some applications will set their name as the header for that request. If the header is present in 
+"ignored-headers.json", the request will return the redirect, but will not increase the statistics counter. 
+
+**File format:** *List of strings, representing the headers to check against. Works only if the headers are an exact match*
+
+**Where to find the used headers**: 
+```bash
+heroku run bash
+cat unique-header-logs.txt
+```
 
