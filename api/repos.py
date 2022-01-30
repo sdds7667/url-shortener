@@ -63,6 +63,7 @@ class UrlEntryRepo(Repo):
             # Update the usage stats
             urlEntryModel.lastUsed = datetime.now()
             urlEntryModel.used = UrlEntryModel.used + 1
+            urlEntryModel.synced = False
             self.db.session.commit()
 
         return urlEntryModel.longUrl

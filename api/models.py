@@ -23,6 +23,7 @@ class UrlEntryModel(db.Model):
         self.longUrl = url
         self.used = used
         self.lastUsed = lastUsed
+        self.synced = False
 
     def __repr__(self):
         return f"<{self.companySlug}/{self.id}/{self.longUrl}/{self.used}/{self.lastUsed}>"
