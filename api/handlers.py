@@ -107,3 +107,4 @@ def handle_get_slugs_for_company(slug_repo: SlugReservationRepo, companyId: str)
     :return: the list of slugs the company used
     """
     return slug_repo.by_company_not_expired(companyId)
+
